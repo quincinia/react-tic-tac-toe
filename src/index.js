@@ -12,6 +12,7 @@ function Square(props) {
 
 class Board extends React.Component {
   renderSquare(i) {
+    // by taking a parameter here, we can implicitly call Game::handleClick() with an argument without the Square object passing anything
     return (
       <Square
         value={this.props.squares[i]}
@@ -21,23 +22,28 @@ class Board extends React.Component {
   }
 
   render() {
+    const display = Array(3).fill(null);
+
+    // we don't need keys because this list won't change
+    for (let i = 0; i < 3; i++) {
+
+        // generate row items
+        let rowItems = Array(3).fill(null);
+        for (let j = 0; j < 3; j++) {
+            rowItems[j] = this.renderSquare(3*i+j);
+        }
+
+        // add rows to display
+        display[i] = (
+            <div className="board-row">
+                {rowItems}
+            </div>
+        );
+    }
+
     return (
       <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+        {display}
       </div>
     );
   }
@@ -49,7 +55,8 @@ class Game extends React.Component {
     this.state = {
       history: [
         {
-          squares: Array(9).fill(null)
+          squares: Array(9).fill(null),
+          location: null
         }
       ],
       stepNumber: 0,
@@ -58,17 +65,27 @@ class Game extends React.Component {
   }
 
   handleClick(i) {
+    // grab the history up until this point (in the case we went back)
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
+
+    // state of the board at this point in the history 
     const current = history[history.length - 1];
     const squares = current.squares.slice();
+
+    // if made a winning move, or we click on an X or O, then we are done
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
+
+    // otherwise, a valid move was made, so we will switch turns
     squares[i] = this.state.xIsNext ? "X" : "O";
+
+    // add this move to the history, update other properties as needed
     this.setState({
       history: history.concat([
         {
-          squares: squares
+          squares: squares,
+          location: i
         }
       ]),
       stepNumber: history.length,
@@ -77,6 +94,11 @@ class Game extends React.Component {
   }
 
   jumpTo(step) {
+    // because we change the state, we have to rerender the board 
+
+    // when we rerender, the stepNumber will have changed, pointing to a different part in the board history
+
+    // we can still jump forward in time, unless we make a move, upon which the history will be rewritten
     this.setState({
       stepNumber: step,
       xIsNext: (step % 2) === 0
@@ -88,13 +110,13 @@ class Game extends React.Component {
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
-    const moves = history.map((step, move) => {
-      const desc = move ?
-        'Go to move #' + move :
-        'Go to game start';
+    const moves = history.map((item, index) => {
+      const desc = index ?
+        `Go to move #${index} ${locationFromID(item.location)}` :
+        `Go to game start ${locationFromID(item.location)}`;
       return (
-        <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        <li key={index}>
+          <button onClick={() => this.jumpTo(index)}>{desc}</button>
         </li>
       );
     });
@@ -145,4 +167,11 @@ function calculateWinner(squares) {
     }
   }
   return null;
+}
+
+function locationFromID(id) {
+    if (id === null) 
+        return '';
+    else
+        return `(${Math.trunc(id/3)}, ${id%3})`;
 }
