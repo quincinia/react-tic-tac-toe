@@ -4,19 +4,20 @@ import './index.css';
 
 function Square(props) {
   return (
-    <button className="square" onClick={props.onClick}>
+    <button className={"square" + (props.isSol ? " solution" : "")} onClick={props.onClick}>
       {props.value}
     </button>
   );
 }
 
 class Board extends React.Component {
-  renderSquare(i) {
+  renderSquare(i, solution) {
     // by taking a parameter here, we can implicitly call Game::handleClick() with an argument without the Square object passing anything
     return (
       <Square
         value={this.props.squares[i]}
         onClick={() => this.props.onClick(i)}
+        isSol={solution}
       />
     );
   }
@@ -30,7 +31,9 @@ class Board extends React.Component {
         // generate row items
         let rowItems = Array(3).fill(null);
         for (let j = 0; j < 3; j++) {
-            rowItems[j] = this.renderSquare(3*i+j);
+            // if this square is part of the solution, then mark it
+            let solution = this.props.solutions?.includes(3*i+j);
+            rowItems[j] = this.renderSquare(3*i+j, solution);
         }
 
         // add rows to display
@@ -60,7 +63,8 @@ class Game extends React.Component {
         }
       ],
       stepNumber: 0,
-      xIsNext: true
+      xIsNext: true,
+      ascendingHistory: true
     };
   }
 
@@ -105,15 +109,23 @@ class Game extends React.Component {
     });
   }
 
+  handleInputChange(event) {
+    this.setState({
+        ascendingHistory: !this.state.ascendingHistory
+    });
+  }
+
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
     const moves = history.map((item, index) => {
-      const desc = index ?
+      let desc = index ?
         `Go to move #${index} ${locationFromID(item.location)}` :
         `Go to game start ${locationFromID(item.location)}`;
+      if (index === this.state.stepNumber)
+        desc = <b>{desc}</b>;
       return (
         <li key={index}>
           <button onClick={() => this.jumpTo(index)}>{desc}</button>
@@ -123,22 +135,36 @@ class Game extends React.Component {
 
     let status;
     if (winner) {
-      status = "Winner: " + winner;
-    } else {
+      // because calculateWinner() now returns an array, we need to dereference it
+      status = "Winner: " + current.squares[winner[0]];
+    } else if (current.squares.includes(null)) {
       status = "Next player: " + (this.state.xIsNext ? "X" : "O");
+    } else {
+      // if there are no free squares, and a winner has not been decided, then there is a draw
+      status = "Draw!";
     }
 
+    // because "moves" is just a copy of the history, it is ok to reverse it without messing anything up
+    // because the jumpTo() call is bound _before_ the reversal is made, the reverse() operation will not affect the index passed into jumpTo()
+    // pass the solution squares into Board for rendering
     return (
       <div className="game">
         <div className="game-board">
           <Board
             squares={current.squares}
             onClick={i => this.handleClick(i)}
+            solutions={winner}
           />
         </div>
         <div className="game-info">
           <div>{status}</div>
-          <ol>{moves}</ol>
+          <ol>{this.state.ascendingHistory ? moves : moves.reverse()}</ol>
+        </div>
+        <div className="game-mods">
+          <label>
+            Reverse history: 
+            <input name="toggle" type="checkbox" onChange={(e) => this.handleInputChange(e)} />
+          </label>
         </div>
       </div>
     );
@@ -160,10 +186,12 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6]
   ];
+
+  // multiple solutions could be returned using concat or something, but that isn't really a priority
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return lines[i];
     }
   }
   return null;

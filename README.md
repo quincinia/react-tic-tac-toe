@@ -7,9 +7,9 @@ A rendition of the tic-tac-toe game from the [React tutorial](https://reactjs.or
 
 Todo (probably better implemented as issues):
 - [X] add move locations to history 
-- [ ] bold current move
+- [X] bold current move
 - [X] use loops to render board 
-- [ ] add button/checkbox that will reverse history order
-- [ ] winning move highlight
-- [ ] add message for draw
+- [X] add button/checkbox that will reverse history order
+- [X] winning move highlight
+- [X] add message for draw
 - [ ] add multiple pieces and according logic

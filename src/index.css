@@ -33,6 +33,10 @@ ol, ul {
   width: 34px;
 }
 
+.solution {
+  background: lightgreen;
+}
+
 .square:focus {
   outline: none;
 }
@@ -47,5 +51,9 @@ ol, ul {
 }
 
 .game-info {
+  margin-left: 20px;
+}
+
+.game-mods {
   margin-left: 20px;
 }
