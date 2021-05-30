@@ -4,7 +4,9 @@ import './index.css';
 
 function Square(props) {
   return (
-    <button className={"square" + (props.isSol ? " solution" : "")} onClick={props.onClick}>
+    <button 
+      className={"square " + props.player + (props.isSol ? " solution" : "")} 
+      onClick={props.onClick}>
       {props.value}
     </button>
   );
@@ -15,9 +17,10 @@ class Board extends React.Component {
     // by taking a parameter here, we can implicitly call Game::handleClick() with an argument without the Square object passing anything
     return (
       <Square
-        value={this.props.squares[i]}
+        value={this.props.squares[i]?.piece}
         onClick={() => this.props.onClick(i)}
         isSol={solution}
+        player={this.props.squares[i]?.player}
       />
     );
   }
@@ -61,13 +64,13 @@ class Game extends React.Component {
         {
           squares: Array(9).fill(null),
           location: null,
-          p1: Array(numPieces).fill(false),
-          p2: Array(numPieces).fill(false),
+          p1: Array(numPieces).fill(true),
+          p2: Array(numPieces).fill(true),
           piece: null /* may not be needed */
         }
       ],
       stepNumber: 0,
-      xIsNext: true,
+      xIsNext: false, // false = P1, true = P2
       ascendingHistory: true,
       p1Piece: null,
       p2Piece: null
@@ -83,13 +86,29 @@ class Game extends React.Component {
     const current = history[history.length - 1];
     const squares = current.squares.slice();
 
-    // if made a winning move, or we click on an X or O, then we are done
-    if (calculateWinner(squares) || squares[i]) {
+    // get the piece that the current player has selected
+    const selectedPiece = this.state.xIsNext ? this.state.p2Piece : this.state.p1Piece;
+
+    // if made a winning move, or we click on an X or O, then we are done (change this note)
+    if (calculateWinner(squares) || squares[i]?.piece > selectedPiece) {
       return;
     }
 
-    // otherwise, a valid move was made, so we will switch turns
-    squares[i] = this.state.xIsNext ? "X" : "O";
+    if (selectedPiece === null) {
+      alert((this.state.xIsNext ? "P2" : "P1") + " Please select a piece!");
+      return;
+    }
+
+    // otherwise, a valid move was made, so we will save it into this spot
+    // use assignment instead of changing properties because we don't know if the square is null or not
+    squares[i] = {
+      piece: selectedPiece,
+      player: this.state.xIsNext ? "P2" : "P1"
+    };
+
+    // update bit vector of the player 
+    const bitVector = (this.state.xIsNext ? current.p2 : current.p1).slice();
+    bitVector[selectedPiece-1] = false;
 
     // add this move to the history, update other properties as needed
     this.setState({
@@ -97,12 +116,14 @@ class Game extends React.Component {
         {
           squares: squares,
           location: i,
-          p1: current.p1,
-          p2: current.p2
+          p1: this.state.xIsNext ? current.p1 : bitVector,
+          p2: this.state.xIsNext ? bitVector : current.p2
         }
       ]),
       stepNumber: history.length,
-      xIsNext: !this.state.xIsNext
+      xIsNext: !this.state.xIsNext,
+      p1Piece: null,
+      p2Piece: null
     });
   }
 
@@ -114,7 +135,7 @@ class Game extends React.Component {
     // we can still jump forward in time, unless we make a move, upon which the history will be rewritten
     this.setState({
       stepNumber: step,
-      xIsNext: (step % 2) === 0
+      xIsNext: (step % 2) === 1
     });
   }
 
@@ -131,6 +152,20 @@ class Game extends React.Component {
         [event.target.name]: piece
       });
     }
+  }
+
+  determineDraw(current) {
+    const p1 = current.p1.slice();
+    const p2 = current.p2.slice();
+    function moveExists(item, index) {
+      return item && current.squares.some(square => {
+        return square?.piece < index+1;
+      });
+    }
+    // p1 and p1 must have no moves to be a draw
+    // true when draw exists
+    return !p1.some(moveExists) && // idk about putting AND here 
+           !p2.some(moveExists);
   }
 
   render() {
@@ -154,12 +189,11 @@ class Game extends React.Component {
     let status;
     if (winner) {
       // because calculateWinner() now returns an array, we need to dereference it
-      status = "Winner: " + current.squares[winner[0]];
-    } else if (current.squares.includes(null)) {
-      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-    } else {
-      // if there are no free squares, and a winner has not been decided, then there is a draw
+      status = "Winner: " + current.squares[winner[0]].player;
+    } else if (this.determineDraw(current) === true) {
       status = "Draw!";
+    } else {
+      status = "Next player: " + (this.state.xIsNext ? "P2" : "P1");
     }
 
     // because "moves" is just a copy of the history, it is ok to reverse it without messing anything up
@@ -191,12 +225,14 @@ class Game extends React.Component {
             numPieces={numPieces}
             disabled={current.p1}
             onClick={this.handleRadioChange}
+            checked={this.state.p1Piece}
           />
           <PieceSelector
             pNum={2}
             numPieces={numPieces}
             disabled={current.p2}
             onClick={this.handleRadioChange}
+            checked={this.state.p2Piece}
           />
         </div>
       </div>
@@ -212,12 +248,13 @@ class PieceSelector extends React.Component {
     for (let i = 0; i < pieces.length; i++) {
       pieces[i] = (
         <div>
-          <label htmlFor={`p${pNum}-${i+1}`} className={`p${pNum}`}>{i+1}</label>
+          <label htmlFor={`p${pNum}-${i+1}`} className={`P${pNum}`}>{i+1}</label>
           <input 
             id={`p${pNum}-${i+1}`} 
             type="radio" name={`p${pNum}Piece`} 
-            disabled={this.props.disabled[i]} 
+            disabled={!this.props.disabled[i]} 
             onClick={this.props.onClick(i+1)}
+            checked={this.props.checked !== null && this.props.checked === i+1}
           />
         </div>
       );
@@ -253,7 +290,9 @@ function calculateWinner(squares) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     // to determine a winner, we need to check who placed the piece
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+    if (squares[a] && 
+        squares[a].player === squares[b]?.player && 
+        squares[a].player === squares[c]?.player) {
       return lines[i];
     }
   }
