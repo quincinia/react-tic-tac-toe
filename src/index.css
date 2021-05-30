@@ -57,3 +57,32 @@ ol, ul {
 .game-mods {
   margin-left: 20px;
 }
+
+/* for multi-piece selection */
+input[type="radio"] {
+  display: block;
+  margin: 0.5em auto;
+}
+
+label {
+  display: block;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.radioGroup label {
+  font-weight: bold;
+}
+
+.p1 {
+  color: blue;
+}
+
+.p2 {
+  color: orange;
+}

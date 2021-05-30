@@ -52,6 +52,7 @@ class Board extends React.Component {
   }
 }
 
+const numPieces = 6;
 class Game extends React.Component {
   constructor(props) {
     super(props);
@@ -59,13 +60,19 @@ class Game extends React.Component {
       history: [
         {
           squares: Array(9).fill(null),
-          location: null
+          location: null,
+          p1: Array(numPieces).fill(false),
+          p2: Array(numPieces).fill(false),
+          piece: null /* may not be needed */
         }
       ],
       stepNumber: 0,
       xIsNext: true,
-      ascendingHistory: true
+      ascendingHistory: true,
+      p1Piece: null,
+      p2Piece: null
     };
+    this.handleRadioChange = this.handleRadioChange.bind(this);
   }
 
   handleClick(i) {
@@ -89,7 +96,9 @@ class Game extends React.Component {
       history: history.concat([
         {
           squares: squares,
-          location: i
+          location: i,
+          p1: current.p1,
+          p2: current.p2
         }
       ]),
       stepNumber: history.length,
@@ -109,10 +118,19 @@ class Game extends React.Component {
     });
   }
 
-  handleInputChange(event) {
+  handleCheckboxChange(event) {
     this.setState({
         ascendingHistory: !this.state.ascendingHistory
     });
+  }
+
+  handleRadioChange(piece) {
+    return (event) => {
+      alert(`${event.target.name} is piece #${piece}`);
+      this.setState({
+        [event.target.name]: piece
+      });
+    }
   }
 
   render() {
@@ -147,6 +165,9 @@ class Game extends React.Component {
     // because "moves" is just a copy of the history, it is ok to reverse it without messing anything up
     // because the jumpTo() call is bound _before_ the reversal is made, the reverse() operation will not affect the index passed into jumpTo()
     // pass the solution squares into Board for rendering
+
+    // const numPieces = 6;
+    // const disableList = Array(numPieces).fill(false);
     return (
       <div className="game">
         <div className="game-board">
@@ -163,9 +184,50 @@ class Game extends React.Component {
         <div className="game-mods">
           <label>
             Reverse history: 
-            <input name="toggle" type="checkbox" onChange={(e) => this.handleInputChange(e)} />
+            <input name="toggle" type="checkbox" onChange={(e) => this.handleCheckboxChange(e)} />
           </label>
+          <PieceSelector
+            pNum={1}
+            numPieces={numPieces}
+            disabled={current.p1}
+            onClick={this.handleRadioChange}
+          />
+          <PieceSelector
+            pNum={2}
+            numPieces={numPieces}
+            disabled={current.p2}
+            onClick={this.handleRadioChange}
+          />
         </div>
+      </div>
+    );
+  }
+}
+
+
+class PieceSelector extends React.Component {
+  render() {
+    let pieces = Array(this.props.numPieces);
+    const pNum = this.props.pNum;
+    for (let i = 0; i < pieces.length; i++) {
+      pieces[i] = (
+        <div>
+          <label htmlFor={`p${pNum}-${i+1}`} className={`p${pNum}`}>{i+1}</label>
+          <input 
+            id={`p${pNum}-${i+1}`} 
+            type="radio" name={`p${pNum}Piece`} 
+            disabled={this.props.disabled[i]} 
+            onClick={this.props.onClick(i+1)}
+          />
+        </div>
+      );
+    }
+
+    // displaying the pieces in descending order
+    return (
+      <div className={`radioGroup`}>
+        Player {this.props.pNum}:
+        {pieces.reverse()}
       </div>
     );
   }
@@ -190,6 +252,7 @@ function calculateWinner(squares) {
   // multiple solutions could be returned using concat or something, but that isn't really a priority
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
+    // to determine a winner, we need to check who placed the piece
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
       return lines[i];
     }
