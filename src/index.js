@@ -122,8 +122,7 @@ class Game extends React.Component {
       ]),
       stepNumber: history.length,
       xIsNext: !this.state.xIsNext,
-      p1Piece: null,
-      p2Piece: null
+      [this.state.xIsNext ? "p2Piece" : "p1Piece"]: null // will not clear the piece of the other player
     });
   }
 
@@ -159,7 +158,7 @@ class Game extends React.Component {
     const p2 = current.p2.slice();
     function moveExists(item, index) {
       return item && current.squares.some(square => {
-        return square?.piece < index+1;
+        return square === null || square.piece < index+1;
       });
     }
     // p1 and p1 must have no moves to be a draw
