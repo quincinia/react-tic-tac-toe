@@ -21,6 +21,7 @@ class Board extends React.Component {
         onClick={() => this.props.onClick(i)}
         isSol={solution}
         player={this.props.squares[i]?.player}
+        key={i}
       />
     );
   }
@@ -28,7 +29,7 @@ class Board extends React.Component {
   render() {
     const display = Array(3).fill(null);
 
-    // we don't need keys because this list won't change
+    // adding keys to satisfy warnings, but they aren't used here
     for (let i = 0; i < 3; i++) {
 
         // generate row items
@@ -41,7 +42,7 @@ class Board extends React.Component {
 
         // add rows to display
         display[i] = (
-            <div className="board-row">
+            <div className="board-row" key={i}>
                 {rowItems}
             </div>
         );
@@ -62,18 +63,17 @@ class Game extends React.Component {
     this.state = {
       history: [
         {
-          squares: Array(9).fill(null),
-          location: null,
-          p1: Array(numPieces).fill(true),
-          p2: Array(numPieces).fill(true),
-          piece: null /* may not be needed */
+          squares: Array(9).fill(null), // board state
+          location: null, // index of placed item
+          p1: Array(numPieces).fill(true), // bit vectors representing 
+          p2: Array(numPieces).fill(true), // the available pieces left
         }
       ],
-      stepNumber: 0,
+      stepNumber: 0, // index into the history
       xIsNext: false, // false = P1, true = P2
       ascendingHistory: true,
-      p1Piece: null,
-      p2Piece: null
+      p1Piece: null, // currently selected 
+      p2Piece: null  // pieces
     };
     this.handleRadioChange = this.handleRadioChange.bind(this);
   }
@@ -89,15 +89,17 @@ class Game extends React.Component {
     // get the piece that the current player has selected
     const selectedPiece = this.state.xIsNext ? this.state.p2Piece : this.state.p1Piece;
 
-    // if made a winning move, or we click on an X or O, then we are done (change this note)
+    // if a winner has been decided, or we make an invalid move, then we are done 
     if (calculateWinner(squares) || squares[i]?.piece > selectedPiece) {
       return;
     }
 
     if (selectedPiece === null) {
-      alert((this.state.xIsNext ? "P2" : "P1") + " Please select a piece!");
+      alert((this.state.xIsNext ? "P2" : "P1") + " Please select a piece!"); // TODO: remove this later
       return;
     }
+
+    // (add a check for draws here too? don't think its needed)
 
     // otherwise, a valid move was made, so we will save it into this spot
     // use assignment instead of changing properties because we don't know if the square is null or not
@@ -122,7 +124,7 @@ class Game extends React.Component {
       ]),
       stepNumber: history.length,
       xIsNext: !this.state.xIsNext,
-      [this.state.xIsNext ? "p2Piece" : "p1Piece"]: null // will not clear the piece of the other player
+      [this.state.xIsNext ? "p2Piece" : "p1Piece"]: null // will not clear the piece of the other player for convenience's sake
     });
   }
 
@@ -146,7 +148,7 @@ class Game extends React.Component {
 
   handleRadioChange(piece) {
     return (event) => {
-      alert(`${event.target.name} is piece #${piece}`);
+      alert(`${event.target.name} is piece #${piece}`); // TODO: also remove this later
       this.setState({
         [event.target.name]: piece
       });
@@ -168,10 +170,12 @@ class Game extends React.Component {
   }
 
   render() {
+    // grab board state and winner (if there is one)
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
+    // generate previous moves list
     const moves = history.map((item, index) => {
       let desc = index ?
         `Go to move #${index} ${locationFromID(item.location)}` :
@@ -199,6 +203,7 @@ class Game extends React.Component {
     // because the jumpTo() call is bound _before_ the reversal is made, the reverse() operation will not affect the index passed into jumpTo()
     // pass the solution squares into Board for rendering
 
+    // moved above the Game declaration
     // const numPieces = 6;
     // const disableList = Array(numPieces).fill(false);
     return (
@@ -246,13 +251,14 @@ class PieceSelector extends React.Component {
     const pNum = this.props.pNum;
     for (let i = 0; i < pieces.length; i++) {
       pieces[i] = (
-        <div>
+        <div key={i}>
           <label htmlFor={`p${pNum}-${i+1}`} className={`P${pNum}`}>{i+1}</label>
           <input 
             id={`p${pNum}-${i+1}`} 
             type="radio" name={`p${pNum}Piece`} 
             disabled={!this.props.disabled[i]} 
             onClick={this.props.onClick(i+1)}
+            onChange={e => {}} /* getting rid of warnings */
             checked={this.props.checked !== null && this.props.checked === i+1}
           />
         </div>

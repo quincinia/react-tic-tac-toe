@@ -12,4 +12,4 @@ Todo (probably better implemented as issues):
 - [X] add button/checkbox that will reverse history order
 - [X] winning move highlight
 - [X] add message for draw
-- [ ] add multiple pieces and according logic
+- [X] add multiple pieces and according logic
